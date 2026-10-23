@@ -2,14 +2,18 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGameLibrary;
+using MonoGameLibrary.Graphics;
 
 namespace DungeonSlime;
 
 public class Game1 : Core
 {
 
-    // Texture2D that holds a image
-    private Texture2D _logo;
+    // texture region that defines slime sprite in atlas
+    private TextureRegion _slime;
+
+    // texture region that defines slime sprite in atlas
+    private TextureRegion _bat;
 
     public Game1() : base("Dungeon Slime", 1280, 720, false)
     {
@@ -25,8 +29,13 @@ public class Game1 : Core
 
     protected override void LoadContent()
     {
-        // TODO: use this.Content to load your game content here
-        _logo = Content.Load<Texture2D>("images/logo");
+        // Create the atlas texture from the XML config file
+        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
+        // Retrieve slime region from atlas
+        _slime = atlas.GetRegion("slime");
+
+        // Retrive bat region from atlas
+        _bat = atlas.GetRegion("bat");
     }
 
     protected override void Update(GameTime gameTime)
@@ -35,75 +44,24 @@ public class Game1 : Core
             Exit();
 
         // TODO: Add your update logic here
-        var elapsed = gameTime.ElapsedGameTime.TotalSeconds;
 
         base.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime)
     {
+        // Clear the back buffer
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
-        // Creating rectangles to select icon and words in logo
-        Rectangle iconSourceRect = new Rectangle(0, 0, 128, 128);
+        // Begin sprite batch to prepare for rendering
+        SpriteBatch.Begin(samplerState: SamplerState.PointClamp); // SamplerState.PointClamp allows scaled pixel art to stay sharp.
 
-        Rectangle wordmarkSourceRect = new Rectangle(150, 34, 458, 58);
+        // Draw the slime texture region at a scale of 4.0
+        _slime.Draw(SpriteBatch, Vector2.Zero, Color.White, 0.0f, Vector2.One, 4.0f, SpriteEffects.None, 1.0f);
 
-        // Being sprite batch to prepare for rendering
-        SpriteBatch.Begin(sortMode: SpriteSortMode.FrontToBack);
+        // Draw the bat texture region 10px to the right of the slime at a scale of 4.0
+        _bat.Draw(SpriteBatch, new Vector2(_slime.Width * 4.0f + 10.0f, 0), Color.White, 0.0f, Vector2.One, 4.0f, SpriteEffects.None, 1.0f);
 
-
-        // Draws the Icon only
-        SpriteBatch.Draw(
-            // texture
-            _logo,
-            // position vector
-            new Vector2(
-                Window.ClientBounds.Width * 0.5f, // x position of sprite
-                Window.ClientBounds.Height * 0.5f // y position of sprite
-                ),
-            // source rectangle (portion of sprite being drawn, null is whole sprite)
-            iconSourceRect,
-            // color and opacity
-            Color.White,
-            // rotation
-            0.0f,
-            // set origin on sprite
-            new Vector2(
-                iconSourceRect.Width * 0.5f, // x shift of origin from top left corner
-                iconSourceRect.Height * 0.5f // y shift of origin from top left corner
-                ),
-            // scales sprite
-            new Vector2(
-                1.0f, // scales in x direction
-                1.0f // scales in y direction
-                ),
-            // sprite effects
-            SpriteEffects.None,
-            // layer depth
-            1.0f
-            );
-
-
-        // Draws work mark of logo
-        SpriteBatch.Draw(
-            _logo,
-            new Vector2(
-                Window.ClientBounds.Width * 0.5f,
-                Window.ClientBounds.Height * 0.5f
-                ),
-            wordmarkSourceRect,
-            Color.White,
-            0.0f,
-            new Vector2(
-                wordmarkSourceRect.Width * 0.5f,
-                wordmarkSourceRect.Height * 0.5f
-                ),
-            1.0f,
-            SpriteEffects.None,
-            0.0f
-            );
-             
 
         // Always end the sprite batch when finished
         SpriteBatch.End();
