@@ -29,6 +29,12 @@ public class Game1 : Core
     // Tracks velocity of the bat.
     private Vector2 _batVelocity;
 
+    // Defines the tilemap to draw.
+    private Tilemap _tilemap;
+
+    // Defines the bounds of the room that the slime and cat are contained within.
+    private Rectangle _roomBounds;
+
     public Game1() : base("Dungeon Slime", 1280, 720, false)
     {
 
@@ -38,8 +44,22 @@ public class Game1 : Core
     {
         base.Initialize();
 
-        // Set initial postion of bat 10px to right of slime.
-        _batPosition = new Vector2(_slime.Width + 10, 0);
+        Rectangle screenBounds = GraphicsDevice.PresentationParameters.Bounds;
+
+        _roomBounds = new Rectangle(
+            (int)_tilemap.TileWidth,
+            (int)_tilemap.TileWidth,
+            screenBounds.Width - (int)_tilemap.TileWidth * 2,
+            screenBounds.Height - (int)_tilemap.TileHeight * 2
+            );
+
+        // Initial slime position will be center tile of tile map.
+        int centerRow = _tilemap.Rows / 2;
+        int centerColumn = _tilemap.Columns / 2;
+        _slimePosition = new Vector2(centerColumn * _tilemap.TileWidth, centerRow * _tilemap.TileHeight);
+
+        // Initial bat position will be in top left corner of room.
+        _batPosition = new Vector2(_roomBounds.Left, _roomBounds.Top);
 
         // Assign initial random veloctiy to bat.
         AssignRandomBatVelocity();
@@ -57,6 +77,10 @@ public class Game1 : Core
         // Create the bat sprite from the altas
         _bat = atlas.CreateAnimatedSprite("bat-animation");
         _bat.Scale = new Vector2(4.0f, 4.0f);
+
+        // Create the tilemap from XML config file.
+        _tilemap = Tilemap.FromFile(Content, "images/tilemap-definition.xml");
+        _tilemap.Scale = new Vector2(4.0f, 4.0f);
     }
 
     protected override void Update(GameTime gameTime)
@@ -92,22 +116,22 @@ public class Game1 : Core
 
         // Using distance based checks to determine if slime is within the bounds the game screen,
         // and if it is outside that screen edge, move it back inside.
-        if (slimeBounds.Left < screenBounds.Left)
+        if (slimeBounds.Left < _roomBounds.Left)
         {
-            _slimePosition.X = screenBounds.Left;
+            _slimePosition.X = _roomBounds.Left;
         }
-        else if (slimeBounds.Right > screenBounds.Right)
+        else if (slimeBounds.Right > _roomBounds.Right)
         {
-            _slimePosition.X = screenBounds.Right - _slime.Width;
+            _slimePosition.X = _roomBounds.Right - _slime.Width;
         }
 
-        if (slimeBounds.Top < screenBounds.Top)
+        if (slimeBounds.Top < _roomBounds.Top)
         {
-            _slimePosition.Y = screenBounds.Top;
+            _slimePosition.Y = _roomBounds.Top;
         }
-        else if (slimeBounds.Bottom > screenBounds.Bottom)
+        else if (slimeBounds.Bottom >_roomBounds.Bottom)
         {
-            _slimePosition.Y = screenBounds.Bottom - _slime.Height;
+            _slimePosition.Y = _roomBounds.Bottom - _slime.Height;
         }
 
         // Calculate new position of the bat based on the velocity.
@@ -124,25 +148,25 @@ public class Game1 : Core
 
         // Use distance based checks to determind if bat is within bounds of game screen,
         // and if it is outside that screen edge, reflect it about the screen edge normal.
-        if (batBounds.Left < screenBounds.Left)
+        if (batBounds.Left < _roomBounds.Left)
         {
             normal.X = Vector2.UnitX.X;
-            newBatPosition.X = screenBounds.Left;
+            newBatPosition.X = _roomBounds.Left;
         }
-        else if (batBounds.Right > screenBounds.Right)
+        else if (batBounds.Right > _roomBounds.Right)
         {
             normal.X = -Vector2.UnitX.X;
         }
 
-        if (batBounds.Top < screenBounds.Top)
+        if (batBounds.Top < _roomBounds.Top)
         {
             normal.Y = Vector2.UnitY.Y;
-            newBatPosition.Y = screenBounds.Top;
+            newBatPosition.Y = _roomBounds.Top;
         }
-        else if (batBounds.Bottom > screenBounds.Bottom)
+        else if (batBounds.Bottom > _roomBounds.Bottom)
         {
             normal.Y = -Vector2.UnitY.Y;
-            newBatPosition.Y = screenBounds.Bottom - _bat.Height;
+            newBatPosition.Y = _roomBounds.Bottom - _bat.Height;
         }
 
         // If the normal is anything but Vector2.Zero, this means the bat had moved outside the screen edge
@@ -157,14 +181,9 @@ public class Game1 : Core
 
         if (slimeBounds.Intersects(batBounds))
         {
-            // Divide the width and height of the screen in to equal columns
-            // and rows based on width and height of bat.
-            int totalColumns = GraphicsDevice.PresentationParameters.BackBufferWidth / (int)_bat.Width;
-            int totalRows = GraphicsDevice.PresentationParameters.BackBufferHeight / (int)_bat.Height;
-
-            // Choose a random row and column
-            int column = Random.Shared.Next(0, totalColumns);
-            int row = Random.Shared.Next(0, totalRows);
+            // Choose a random row and column based on total number of each
+            int column = Random.Shared.Next(1, _tilemap.Columns - 1);
+            int row = Random.Shared.Next(1, _tilemap.Columns - 1);
 
             // Change the bat position by setting the x and y values equal to
             // the column and row multiplied by the width and height.
@@ -286,6 +305,9 @@ public class Game1 : Core
         // Begin sprite batch to prepare for rendering
         SpriteBatch.Begin(samplerState: SamplerState.PointClamp); // SamplerState.PointClamp allows scaled pixel art to stay sharp.
 
+        // Draw the tilemap
+        _tilemap.Draw(SpriteBatch);
+        
         // Draw the slime sprite.
         _slime.Draw(SpriteBatch, _slimePosition);
 
