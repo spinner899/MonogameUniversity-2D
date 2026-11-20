@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGameLibrary.Audio;
 using MonoGameLibrary.Input;
+using MonoGameLibrary.Scenes;
 
 namespace MonoGameLibrary;
 
@@ -16,6 +17,12 @@ public class Core : Game
     /// Gets a reference to the Core instance.
     /// </summary>
     public static Core Instance => s_instance;
+
+    // The scene that is currently active.
+    private static Scene s_activeScene;
+
+    // The next scene to switch to, if there is one.
+    private static Scene s_nextScene;
 
     /// <summary>
     /// Gets the graphics device manager to control the presentation of graphics.
@@ -137,6 +144,65 @@ public class Core : Game
             Exit();
         }
 
+        // If there is a next scene waiting to be switched to, then transition to that scene.
+        if (s_nextScene != null)
+        {
+            TransitionScene();
+        }
+
+        // If there is an active scene, update it.
+        if (s_activeScene != null)
+        {
+            s_activeScene.Update(gameTime);
+        }
+
         base.Update(gameTime);
+    }
+
+    protected override void Draw(GameTime gameTime)
+    {
+        // If these is an active scene, draw it.
+        if (s_activeScene != null)
+        {
+            s_activeScene.Draw(gameTime);
+        }
+
+        base.Draw(gameTime);
+    }
+
+
+    public static void ChangeScene(Scene next)
+    {
+        // Only set next scene value if it is not same instance as current active scene.
+        if (s_activeScene != next)
+        {
+            s_nextScene = next;
+        }
+    }
+
+
+    private static void TransitionScene()
+    {
+        // If there is active scene dispose of it.
+        if (s_activeScene != null)
+        {
+            s_activeScene.Dispose();
+        }
+
+        // Force garbage collector to collect to ensure memory is cleared.
+        GC.Collect();
+
+        // Change current active scene to new scene.
+        s_activeScene = s_nextScene;
+
+        // Null out next scene value so it does not trigger change over and over.
+        s_nextScene = null;
+
+        // If active scene is now not null, initilized it.
+        // Remember, just like Game, the Initialize call also calls Scene.LoadContent
+        if (s_activeScene != null)
+        {
+            s_activeScene.Initialize();
+        }
     }
 }
